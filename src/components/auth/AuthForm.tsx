@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { useAuthFormStore } from "../../stores/useAuthFormStore";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../stores/useAuthStore";
 
 type AuthFormInputs = {
   email: string;
@@ -13,6 +14,8 @@ type AuthFormInputs = {
 export default function AuthForm() {
   const { formType, toggleFormType } = useAuthFormStore();
   const navigate = useNavigate();
+  const { login } = useAuthStore();
+
 
   const {
     register,
@@ -23,8 +26,16 @@ export default function AuthForm() {
 
   const onSubmit = (data: AuthFormInputs) => {
     console.log("Submitted:", data);
-    if (formType === "login") navigate("/dashboard");
-    else toggleFormType();
+    
+    if (formType === "login") {
+      // Simule giriş: burada e-posta adminse admin rolü veriyoruz
+      const isAdmin = data.email.toLowerCase().includes("admin");
+      login(isAdmin ? "admin" : "user");
+
+      navigate("/");
+    } else {
+      toggleFormType(); // kayıt modundaysa login moduna geç
+    }
   };
 
   return (

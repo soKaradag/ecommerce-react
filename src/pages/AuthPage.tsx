@@ -4,6 +4,7 @@ import InfoCards from "../components/cards/InfoCards";
 import Testimonials from "../components/cards/Testimonials";
 import Footer from "../components/Footer";
 import Newsletter from "../components/cards/Newsletter";
+import { Link } from "react-router-dom";
 
 export default function AuthPage() {
   return (
@@ -11,9 +12,9 @@ export default function AuthPage() {
       {/* Header */}
       <header className="flex flex-col items-center justify-center py-5 bg-white h-[12vh] border-b border-gray-200">
         <div className="text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-gray-800">
-            Marketly<span className="text-blue-600">.</span>
-          </h1>
+        <Link to="/" className="text-4xl font-extrabold tracking-tight text-gray-800">
+          Marketly<span className="text-blue-600">.</span>
+        </Link>
           <p className="text-sm text-gray-500 mt-1">Akıllı Alışverişin Yeni Adı</p>
         </div>
       </header>
