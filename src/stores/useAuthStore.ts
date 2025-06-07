@@ -3,8 +3,8 @@ import { persist } from "zustand/middleware";
 
 interface AuthState {
   isAuthenticated: boolean;
-  role: "user" | "admin" | null;
-  login: (role: "user" | "admin") => void;
+  role: "CUSTOMER" | "ADMIN" | null;
+  login: (role: "CUSTOMER" | "ADMIN") => void;
   logout: () => void;
 }
 

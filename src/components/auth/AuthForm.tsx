@@ -31,7 +31,7 @@ export default function AuthForm() {
         const token = await loginApi(data.email, data.password);
 
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const role = payload.role as "admin" | "user";
+        const role = payload.role as "ADMIN" | "CUSTOMER";
 
         login(role);
         navigate("/");

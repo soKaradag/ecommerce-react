@@ -12,7 +12,7 @@ export const loginApi = async (email: string, password: string) => {
 
   // Token'ı decode et (örneğin jwt-decode ile)
   const payload = JSON.parse(atob(token.split('.')[1]));
-  const role = payload.role as 'user' | 'admin';
+  const role = payload.role as 'CUSTOMER' | 'ADMIN';
 
   // Role'e göre login işlemi yap
   useAuthStore.getState().login(role);
