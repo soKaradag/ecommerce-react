@@ -6,7 +6,7 @@ import { useAuthStore } from "../stores/useAuthStore";
 
 export default function Navbar() {
   const { isAuthenticated, role, logout } = useAuthStore();
-  const username = "Serdar"; // Örnek kullanıcı adı (ileride store'dan çekilebilir)
+  const username = "Serdar";
   const initial = username.charAt(0).toUpperCase();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

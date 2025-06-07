@@ -3,6 +3,8 @@ import { useAuthFormStore } from "../../stores/useAuthFormStore";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/useAuthStore";
+import { loginApi } from "../../api/auth/login";
+import { registerApi } from "../../api/auth/register";
 
 type AuthFormInputs = {
   email: string;
@@ -16,7 +18,6 @@ export default function AuthForm() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
 
-
   const {
     register,
     handleSubmit,
@@ -24,17 +25,28 @@ export default function AuthForm() {
     formState: { errors },
   } = useForm<AuthFormInputs>();
 
-  const onSubmit = (data: AuthFormInputs) => {
-    console.log("Submitted:", data);
-    
-    if (formType === "login") {
-      // Simule giriş: burada e-posta adminse admin rolü veriyoruz
-      const isAdmin = data.email.toLowerCase().includes("admin");
-      login(isAdmin ? "admin" : "user");
+  const onSubmit = async (data: AuthFormInputs) => {
+    try {
+      if (formType === "login") {
+        const token = await loginApi(data.email, data.password);
 
-      navigate("/");
-    } else {
-      toggleFormType(); // kayıt modundaysa login moduna geç
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const role = payload.role as "admin" | "user";
+
+        login(role);
+        navigate("/");
+      } else {
+        await registerApi({
+          email: data.email,
+          password: data.password,
+          confirmPassword: data.confirmPassword!,
+        });
+
+        toggleFormType(); 
+      }
+    } catch (err) {
+      console.error("Auth işlemi başarısız:", err);
+      alert("Hatalı giriş veya kayıt bilgisi");
     }
   };
 
