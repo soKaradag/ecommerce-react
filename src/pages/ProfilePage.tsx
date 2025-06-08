@@ -1,8 +1,9 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX, type ChangeEvent } from "react";
 import { Heart, History, Ticket, Pencil, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { updateCustomerInfo } from "../api/customer/updateCustomerInfo";
 import { fetchCustomerInfo } from "../api/customer/fetchCustomerInfo";
+import { fetchProfilePhoto, uploadProfilePhoto } from "../api/customer/profilephoto";
 
 type Gender = {
   id: string;
@@ -37,6 +38,10 @@ type UpdateCustomerInfoRequest = {
 export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [userId, setUserId] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [genderId, setGenderId] = useState("");
   const [genders, setGenders] = useState<Gender[]>([]);
@@ -55,53 +60,75 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      const decoded = JSON.parse(atob(token.split(".")[1]));
-      setEmail(decoded.sub);
-      setUsername(decoded.sub.split("@")[0]);
+    if (!token) return;
 
-      const userId = decoded.userId || decoded.sub;
+    const decoded = JSON.parse(atob(token.split(".")[1]));
+    setEmail(decoded.sub);
+    const uname = decoded.sub.split("@")[0];
+    setUsername(uname);
+    const id = decoded.userId || decoded.sub;
+    setUserId(id);
 
-      fetchCustomerInfo(userId)
-        .then((data: CustomerInfoResponse) => {
-          setCustomerInfo(data);
-          setFormData({
-            firstName: data.firstName,
-            lastName: data.lastName,
-            age: data.age,
-            phoneNumber: data.phoneNumber,
-            genderId: typeof data.gender === "string" ? "" : data.gender.id,
-            country: data.country,
-            city: data.city,
-            zipCode: data.zipCode,
-            openAddress: data.openAddress,
-          });
-          if (typeof data.gender !== "string") {
-            setGenderId(data.gender.id);
-          }
-        });
+    fetchCustomerInfo(id).then((data) => {
+      setCustomerInfo(data);
+      const genderObj = typeof data.gender === "string" ? null : (data.gender as Gender);
 
-      fetch("http://localhost:8080/api/genders")
-        .then((res) => res.json())
-        .then((data: Gender[]) => {
-          setGenders(data);
-        });
-    }
+      setFormData({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        age: data.age,
+        phoneNumber: data.phoneNumber,
+        genderId: genderObj ? genderObj.id : "",
+        country: data.country,
+        city: data.city,
+        zipCode: data.zipCode,
+        openAddress: data.openAddress,
+      });
+
+      if (typeof data.gender !== "string") {
+        const genderObj = data.gender as Gender;
+        setGenderId(genderObj.id);
+      }
+
+    });
+
+    fetch("http://localhost:8080/api/genders")
+      .then((res) => res.json())
+      .then((data: Gender[]) => setGenders(data));
+
+    fetchProfilePhoto(id).then((url) => {
+      setPhotoUrl(`http://localhost:8080${url}`);
+    });
   }, []);
 
   const handleSave = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
-    const decoded = JSON.parse(atob(token.split(".")[1]));
-    const userId = decoded.userId || decoded.sub;
-
     try {
       await updateCustomerInfo(userId, formData);
-      alert("Profil başarıyla güncellendi.");
+      alert("Profil güncellendi.");
       setIsModalOpen(false);
-    } catch (error) {
-      alert("Güncelleme başarısız.");
+    } catch {
+      alert("Güncelleme hatası.");
+    }
+  };
+
+  const handlePhotoClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("token");
+
+    try {
+      await uploadProfilePhoto(formData, token);
+      const url = await fetchProfilePhoto(userId);
+      setPhotoUrl(url);
+    } catch {
+      alert("Yükleme hatası.");
     }
   };
 
@@ -113,9 +140,32 @@ export default function ProfilePage() {
 
       <div className="bg-white shadow rounded-2xl p-6 border border-gray-200 mb-8">
         <div className="flex items-center gap-6 mb-6">
-          <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
-            {username.charAt(0).toUpperCase()}
-          </div>
+        <div
+          onClick={handlePhotoClick}
+          className="w-20 h-20 rounded-full overflow-hidden cursor-pointer border border-gray-300 shadow-sm"
+          title="Profil fotoğrafını değiştir"
+        >
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt="Profil"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">
+              {username.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+        </div>
+
+
           <div>
             <h2 className="text-xl font-semibold text-gray-800">{username}</h2>
             <p className="text-gray-500">{email}</p>
@@ -144,7 +194,7 @@ export default function ProfilePage() {
 
       <div className="grid md:grid-cols-3 gap-6">
         <ProfileLink to="/favorites" icon={<Heart size={18} />} title="Favorilerim" desc="Favorilere eklediğiniz ürünleri görüntüleyin." />
-        <ProfileLink to="/orders" icon={<History size={18} />} title="Satın Alma Geçmişi" desc="Geçmiş siparişlerinizi görüntüleyin." />
+        <ProfileLink to="/orders" icon={<History size={18} />} title="Siparişlerim" desc="Geçmiş siparişlerinizi görüntüleyin." />
         <ProfileLink to="/support" icon={<Ticket size={18} />} title="Destek Taleplerim" desc="Destek taleplerinizi ve yanıtları görüntüleyin." />
       </div>
 
@@ -208,7 +258,6 @@ export default function ProfilePage() {
   );
 }
 
-// Yardımcı bileşenler:
 function Display({ label, value }: { label: string; value: string }) {
   return (
     <div>
