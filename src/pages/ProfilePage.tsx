@@ -1,20 +1,57 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { Heart, History, Ticket, Pencil, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { updateCustomerInfo } from "../api/customer/updateCustomerInfo";
+import { fetchCustomerInfo } from "../api/customer/fetchCustomerInfo";
+
+type Gender = {
+  id: string;
+  name: string;
+};
+
+type CustomerInfoResponse = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  phoneNumber: string;
+  gender: string | { id: string; name: string };
+  country: string;
+  city: string;
+  zipCode: string;
+  openAddress: string;
+};
+
+type UpdateCustomerInfoRequest = {
+  firstName: string;
+  lastName: string;
+  age: number;
+  phoneNumber: string;
+  genderId: string;
+  country: string;
+  city: string;
+  zipCode: string;
+  openAddress: string;
+};
 
 export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [customerInfo, setCustomerInfo] = useState({
-    firstName: "Serdar",
-    lastName: "Karadağ",
-    phone: "+90 555 555 5555",
-    address: "İstanbul, Türkiye",
+  const [genderId, setGenderId] = useState("");
+  const [genders, setGenders] = useState<Gender[]>([]);
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfoResponse | null>(null);
+  const [formData, setFormData] = useState<UpdateCustomerInfoRequest>({
+    firstName: "",
+    lastName: "",
+    age: 0,
+    phoneNumber: "",
+    genderId: "",
+    country: "",
+    city: "",
+    zipCode: "",
+    openAddress: "",
   });
-
-  const [formData, setFormData] = useState({ ...customerInfo });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -22,13 +59,53 @@ export default function ProfilePage() {
       const decoded = JSON.parse(atob(token.split(".")[1]));
       setEmail(decoded.sub);
       setUsername(decoded.sub.split("@")[0]);
+
+      const userId = decoded.userId || decoded.sub;
+
+      fetchCustomerInfo(userId)
+        .then((data: CustomerInfoResponse) => {
+          setCustomerInfo(data);
+          setFormData({
+            firstName: data.firstName,
+            lastName: data.lastName,
+            age: data.age,
+            phoneNumber: data.phoneNumber,
+            genderId: typeof data.gender === "string" ? "" : data.gender.id,
+            country: data.country,
+            city: data.city,
+            zipCode: data.zipCode,
+            openAddress: data.openAddress,
+          });
+          if (typeof data.gender !== "string") {
+            setGenderId(data.gender.id);
+          }
+        });
+
+      fetch("http://localhost:8080/api/genders")
+        .then((res) => res.json())
+        .then((data: Gender[]) => {
+          setGenders(data);
+        });
     }
   }, []);
 
-  const handleSave = () => {
-    setCustomerInfo(formData);
-    setIsModalOpen(false);
+  const handleSave = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const decoded = JSON.parse(atob(token.split(".")[1]));
+    const userId = decoded.userId || decoded.sub;
+
+    try {
+      await updateCustomerInfo(userId, formData);
+      alert("Profil başarıyla güncellendi.");
+      setIsModalOpen(false);
+    } catch (error) {
+      alert("Güncelleme başarısız.");
+    }
   };
+
+  if (!customerInfo) return <div className="p-8">Yükleniyor...</div>;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 relative">
@@ -46,45 +123,15 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-600">Ad</label>
-            <input
-              type="text"
-              value={customerInfo.firstName}
-              readOnly
-              className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1 bg-gray-100"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-600">Soyad</label>
-            <input
-              type="text"
-              value={customerInfo.lastName}
-              readOnly
-              className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1 bg-gray-100"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-600">Telefon</label>
-            <input
-              type="text"
-              value={customerInfo.phone}
-              readOnly
-              className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1 bg-gray-100"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-600">Adres</label>
-            <input
-              type="text"
-              value={customerInfo.address}
-              readOnly
-              className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1 bg-gray-100"
-            />
-          </div>
+          <Display label="Ad" value={customerInfo.firstName} />
+          <Display label="Soyad" value={customerInfo.lastName} />
+          <Display label="Telefon" value={customerInfo.phoneNumber} />
+          <Display label="Yaş" value={String(customerInfo.age)} />
+          <Display label="Adres" value={customerInfo.openAddress} />
+          <Display label="Şehir" value={customerInfo.city} />
+          <Display label="Ülke" value={customerInfo.country} />
+          <Display label="Posta Kodu" value={customerInfo.zipCode} />
+          <Display label="Cinsiyet" value={typeof customerInfo.gender === "string" ? customerInfo.gender : customerInfo.gender.name} />
         </div>
 
         <button
@@ -95,31 +142,12 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Alt Kısımdaki Kartlar */}
       <div className="grid md:grid-cols-3 gap-6">
-        <Link to="/favorites" className="bg-white border border-gray-200 rounded-xl shadow p-4 hover:shadow-md transition">
-          <div className="flex items-center gap-2 text-blue-600 mb-2 font-semibold">
-            <Heart size={18} /> Favorilerim
-          </div>
-          <p className="text-sm text-gray-500">Favorilere eklediğiniz ürünleri görüntüleyin.</p>
-        </Link>
-
-        <Link to="/orders" className="bg-white border border-gray-200 rounded-xl shadow p-4 hover:shadow-md transition">
-          <div className="flex items-center gap-2 text-blue-600 mb-2 font-semibold">
-            <History size={18} /> Satın Alma Geçmişi
-          </div>
-          <p className="text-sm text-gray-500">Geçmiş siparişlerinizi görüntüleyin.</p>
-        </Link>
-
-        <Link to="/support" className="bg-white border border-gray-200 rounded-xl shadow p-4 hover:shadow-md transition">
-          <div className="flex items-center gap-2 text-blue-600 mb-2 font-semibold">
-            <Ticket size={18} /> Destek Taleplerim
-          </div>
-          <p className="text-sm text-gray-500">Destek taleplerinizi ve yanıtları görüntüleyin.</p>
-        </Link>
+        <ProfileLink to="/favorites" icon={<Heart size={18} />} title="Favorilerim" desc="Favorilere eklediğiniz ürünleri görüntüleyin." />
+        <ProfileLink to="/orders" icon={<History size={18} />} title="Satın Alma Geçmişi" desc="Geçmiş siparişlerinizi görüntüleyin." />
+        <ProfileLink to="/support" icon={<Ticket size={18} />} title="Destek Taleplerim" desc="Destek taleplerinizi ve yanıtları görüntüleyin." />
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-xl relative">
@@ -129,52 +157,47 @@ export default function ProfilePage() {
             <h2 className="text-xl font-bold mb-4">Profili Düzenle</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-600">Ad</label>
-                <input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1"
-                />
-              </div>
+              {[
+                { label: "Ad", key: "firstName" },
+                { label: "Soyad", key: "lastName" },
+                { label: "Telefon", key: "phoneNumber" },
+                { label: "Yaş", key: "age" },
+                { label: "Adres", key: "openAddress" },
+                { label: "Şehir", key: "city" },
+                { label: "Ülke", key: "country" },
+                { label: "Posta Kodu", key: "zipCode" },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label className="block text-sm text-gray-600">{label}</label>
+                  <input
+                    type={key === "age" ? "number" : "text"}
+                    value={(formData as any)[key]}
+                    onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                    className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1"
+                  />
+                </div>
+              ))}
 
               <div>
-                <label className="block text-sm text-gray-600">Soyad</label>
-                <input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                <label className="block text-sm text-gray-600">Cinsiyet</label>
+                <select
+                  value={genderId}
+                  onChange={(e) => {
+                    setGenderId(e.target.value);
+                    setFormData({ ...formData, genderId: e.target.value });
+                  }}
                   className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-600">Telefon</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-600">Adres</label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full border border-gray-300 px-4 py-2 rounded-lg mt-1"
-                />
+                >
+                  <option value="" disabled>Seçiniz</option>
+                  {genders.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
             <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
+              <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 Kaydet
               </button>
             </div>
@@ -182,5 +205,26 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Yardımcı bileşenler:
+function Display({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-600">{label}</label>
+      <input value={value} readOnly className="w-full border px-4 py-2 rounded-lg mt-1 bg-gray-100" />
+    </div>
+  );
+}
+
+function ProfileLink({ to, icon, title, desc }: { to: string; icon: JSX.Element; title: string; desc: string }) {
+  return (
+    <Link to={to} className="bg-white border border-gray-200 rounded-xl shadow p-4 hover:shadow-md transition">
+      <div className="flex items-center gap-2 text-blue-600 mb-2 font-semibold">
+        {icon} {title}
+      </div>
+      <p className="text-sm text-gray-500">{desc}</p>
+    </Link>
   );
 }
