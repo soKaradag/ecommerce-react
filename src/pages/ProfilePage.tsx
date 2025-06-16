@@ -135,7 +135,7 @@ export default function ProfilePage() {
   if (!customerInfo) return <div className="p-8">Yükleniyor...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10 relative">
+    <div className=" mx-12 px-4 py-10 relative">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Profil</h1>
 
       <div className="bg-white shadow rounded-2xl p-6 border border-gray-200 mb-8">
