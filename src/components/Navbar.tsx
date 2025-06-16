@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link,useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   ShoppingCart,
@@ -13,6 +13,7 @@ import { useAuthStore } from "../stores/useAuthStore";
 
 export default function Navbar() {
   const { isAuthenticated, role, logout } = useAuthStore();
+  const navigate = useNavigate(); 
 
   const email = localStorage.getItem("token")
     ? JSON.parse(atob(localStorage.getItem("token")!.split(".")[1])).sub
@@ -24,6 +25,11 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 relative z-50">
@@ -49,6 +55,16 @@ export default function Navbar() {
         <div className="flex items-center gap-6 text-sm">
           {isAuthenticated ? (
             <div className="flex items-center justify-center gap-2 relative">
+              {role === "CUSTOMER" && (
+                <Link to="/cart" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <ShoppingCart className="w-4 h-4" /> Sepet
+                </Link>
+              )}
+              {role === "ADMIN" && (
+                <Link to="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <LayoutDashboard className="w-4 h-4" /> Panel
+                </Link>
+              )}
               <div className="text-sm text-gray-500 font-bold">{email}</div>
               <button
                 onClick={toggleMenu}
@@ -59,33 +75,25 @@ export default function Navbar() {
 
               {isMenuOpen && (
                 <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-                  {role === "CUSTOMER" && (
-                    <>
-                      <Link to="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <User className="w-4 h-4" /> Profil
-                      </Link>
-                      <Link to="/settings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <Settings className="w-4 h-4" /> Ayarlar
-                      </Link>
-                      <Link to="/cart" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <ShoppingCart className="w-4 h-4" /> Sepet
-                      </Link>
-                    </>
-                  )}
-
-                  {role === "ADMIN" && (
-                    <>
-                      <Link to="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <LayoutDashboard className="w-4 h-4" /> Panel
-                      </Link>
-                      <Link to="/products" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <PackageSearch className="w-4 h-4" /> Ürünler
-                      </Link>
-                    </>
-                  )}
-
+                  <Link
+                    to="/profile"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <User className="w-4 h-4" /> Profil
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Settings className="w-4 h-4" /> Ayarlar
+                  </Link>
                   <button
-                    onClick={logout}
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
                     className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100"
                   >
                     <LogOut className="w-4 h-4" /> Çıkış Yap
