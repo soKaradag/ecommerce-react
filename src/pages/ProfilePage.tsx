@@ -97,7 +97,7 @@ export default function ProfilePage() {
       .then((data: Gender[]) => setGenders(data));
 
     fetchProfilePhoto(id).then((url) => {
-      setPhotoUrl(`http://localhost:8080${url}`);
+      setPhotoUrl(`http://localhost:8080/${url}`);
     });
   }, []);
 
