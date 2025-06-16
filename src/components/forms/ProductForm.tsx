@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { fetchCategories } from "../../api/product/categoryApi";
-import type { ProductRequest } from "../../api/product/productApi";
+import type { ProductRequest } from "../../types/dto/product";
 
 type Props = {
   onSubmit: (data: ProductRequest) => void;
-  initialData?: ProductRequest & { id?: string };
+  initialData?: ProductRequest & { id?: string; quantity?: number };
 };
 
 export default function ProductForm({ onSubmit, initialData }: Props) {
@@ -12,6 +12,7 @@ export default function ProductForm({ onSubmit, initialData }: Props) {
   const [description, setDescription] = useState(initialData?.description || "");
   const [price, setPrice] = useState(initialData?.price || 0);
   const [categoryId, setCategoryId] = useState(initialData?.categoryId || "");
+  const [quantity, setQuantity] = useState(initialData?.quantity ?? 0);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function ProductForm({ onSubmit, initialData }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ name, description, price, categoryId });
+    onSubmit({ name, description, price, categoryId, quantity });
   };
 
   return (
@@ -45,6 +46,14 @@ export default function ProductForm({ onSubmit, initialData }: Props) {
         placeholder="Fiyat"
         value={price}
         onChange={(e) => setPrice(Number(e.target.value))}
+        className="w-full border px-4 py-2 rounded"
+        required
+      />
+      <input
+        type="number"
+        placeholder="Stok Adedi"
+        value={quantity}
+        onChange={(e) => setQuantity(Number(e.target.value))}
         className="w-full border px-4 py-2 rounded"
         required
       />

@@ -1,3 +1,4 @@
+// src/pages/admin/ProductManagement.tsx
 import { useEffect, useState } from "react";
 import {
   fetchProducts,
@@ -5,10 +6,9 @@ import {
   updateProduct,
   deleteProduct,
 } from "../../api/product/productApi";
-import type { ProductRequest, ProductResponse } from "../../api/product/productApi";
 import ProductForm from "../../components/forms/ProductForm";
 import ProductTable from "../../components/tables/ProductTable";
-import type { Product } from "../../types/dto/product";
+import type { ProductRequest, ProductResponse } from "../../types/dto/product";
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<ProductResponse[]>([]);
@@ -18,10 +18,10 @@ export default function ProductManagement() {
   const loadProducts = async () => {
     try {
       const data = await fetchProducts();
-      console.log("Ürünler API'den dönen veri:", data);
       setProducts(data);
     } catch (err) {
       console.error("Ürünleri yüklerken hata oluştu:", err);
+      alert("Ürünleri yüklerken bir hata oluştu.");
     }
   };
 
@@ -42,7 +42,8 @@ export default function ProductManagement() {
       setEditingProduct(null);
       loadProducts();
     } catch (err) {
-      alert("Bir hata oluştu.");
+      console.error("Ürün kaydedilirken hata oluştu:", err);
+      alert("Hata oluştu.");
     }
   };
 
@@ -52,54 +53,58 @@ export default function ProductManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Bu ürünü silmek istediğinize emin misiniz?")) {
-      await deleteProduct(id);
-      loadProducts();
+    if (confirm("Bu ürünü silmek istediğinizden emin misiniz?")) {
+      try {
+        await deleteProduct(id);
+        alert("Ürün silindi.");
+        loadProducts();
+      } catch (err) {
+        console.error("Silme hatası:", err);
+        alert("Silinirken hata oluştu.");
+      }
     }
   };
 
-  const mapProductResponseToProduct = (productResponse: ProductResponse): Product => ({
-    id: productResponse.id,
-    name: productResponse.name,
-    description: productResponse.description,
-    price: productResponse.price,
-    category: productResponse.category.name, // Assuming category is an object with a name property
-  });
-
-  const mapProductResponseToRequest = (productResponse: ProductResponse): ProductRequest => ({
-    name: productResponse.name,
-    description: productResponse.description,
-    price: productResponse.price,
-    categoryId: productResponse.category.id, // Assuming category has an id property
+  const mapProductResponseToRequest = (res: ProductResponse): ProductRequest => ({
+    name: res.name,
+    description: res.description,
+    price: res.price,
+    categoryId: res.category.id,
+    quantity: res.quantity,
   });
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Ürün Yönetimi</h2>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-gray-800">Ürün Yönetimi</h2>
         <button
           onClick={() => {
             setEditingProduct(null);
             setIsModalOpen(true);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
         >
           + Ürün Ekle
         </button>
       </div>
 
-      <ProductTable
-        products={products.map(mapProductResponseToProduct)}
-        onEdit={(product: Product) => handleEdit(products.find(p => p.id === product.id)!)}
-        onDelete={(id: string) => handleDelete(id)}
-      />
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <ProductTable
+          products={products}
+          onEdit={(id: string) => {
+            const product = products.find(p => p.id === id);
+            if (product) handleEdit(product);
+          }}
+          onDelete={handleDelete}
+        />
+      </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded shadow-md w-full max-w-lg relative">
+          <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg relative">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-2 right-3 text-gray-500 hover:text-black text-xl"
+              className="absolute top-3 right-3 text-gray-500 hover:text-black text-2xl"
             >
               ✕
             </button>
