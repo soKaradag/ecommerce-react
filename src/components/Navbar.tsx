@@ -3,7 +3,6 @@ import { useState } from "react";
 import {
   ShoppingCart,
   LayoutDashboard,
-  PackageSearch,
   Search,
   User,
   Settings,
