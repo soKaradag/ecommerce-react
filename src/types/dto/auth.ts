@@ -1,3 +1,4 @@
+//Auth responses and requests
 export interface LoginRequest {
   email: string;
   password: string;
@@ -13,6 +14,12 @@ export interface RegisterRequest {
   confirmPassword: string;
 }
 
-export interface RegisterResponse {
+export interface ResetPasswordRequest {
+  email: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface ResetPasswordResponse {
   message: string;
 }
