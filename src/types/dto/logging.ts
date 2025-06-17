@@ -14,3 +14,21 @@ export interface LogRequest {
   logTypeId: string;
   logCategoryId: string;
 }
+
+export interface LogCategoryResponse {
+  id: string;
+  name: string;
+}
+
+export interface LogTypeResponse {
+  id: string;
+  name: string;
+}
+
+export interface LogResponse {
+  id: string;
+  message: string;
+  timestamp: string;
+  logTypeId: string;
+  logCategoryId: string;
+}

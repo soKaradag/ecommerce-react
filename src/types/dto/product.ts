@@ -33,9 +33,24 @@ export interface ProductImageRequest {
   productId: string;
 }
 
+export interface ProductImageResponse {
+  id: string;
+  imageUrl: string;
+  productId: string;
+}
+
 export interface ReviewRequest {
   comment: string;
   rating: number;
   userId: string;
   productId: string;
 }
+
+export interface ReviewResponse {
+  id: string;
+  comment: string;
+  rating: number;
+  userId: string;
+  productId: string;
+}
+
