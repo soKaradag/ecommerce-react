@@ -2,17 +2,8 @@
 import { useState, useEffect } from "react";
 import { MoreHorizontal, ChevronDown } from "lucide-react";
 import ProductCard from "../../components/cards/ProductCard";
-
-const categories = [
-  { name: "Elektronik", icon: "📱" },
-  { name: "Giyim", icon: "👗" },
-  { name: "Ev & Yaşam", icon: "🏠" },
-  { name: "Kitap", icon: "📚" },
-  { name: "Spor", icon: "🏋️" },
-  { name: "Oyuncak", icon: "🧸" },
-  { name: "Kozmetik", icon: "💄" },
-  { name: "Market", icon: "🛒" },
-];
+import { fetchCategories } from "../../api/product/categoryApi";
+import type { CategoryResponse } from "../../types/dto/product";
 
 const products = [
   { title: "Bluetooth Kulaklık", category: "Elektronik", price: 299.99 },
@@ -21,32 +12,35 @@ const products = [
   { title: "Roman Kitabı", category: "Kitap", price: 89.9 },
   { title: "Koşu Ayakkabısı", category: "Spor", price: 399.0 },
   { title: "Lego Seti", category: "Oyuncak", price: 189.5 },
-  { title: "Ruj Seti", category: "Kozmetik", price: 129.75 },
+  { title: "Fondöten", category: "Kozmetik", price: 129.75 },
   { title: "Organik Yulaf Ezmesi", category: "Market", price: 54.99 },
-  { title: "Kablosuz Şarj Aleti", category: "Elektronik", price: 229.99 },
-  { title: "Sneaker", category: "Giyim", price: 349.0 },
-  { title: "Masa Lambası", category: "Ev & Yaşam", price: 120.0 },
-  { title: "Klasik Roman", category: "Kitap", price: 59.0 },
-  { title: "Dambıl Seti", category: "Spor", price: 599.0 },
-  { title: "Puzzle 1000 Parça", category: "Oyuncak", price: 119.99 },
-  { title: "Fondöten", category: "Kozmetik", price: 109.99 },
-  { title: "Zeytinyağı 1L", category: "Market", price: 89.99 },
-  { title: "Laptop Soğutucu", category: "Elektronik", price: 189.99 },
-  { title: "Kadın Ceket", category: "Giyim", price: 279.5 },
-  { title: "Duvar Rafı", category: "Ev & Yaşam", price: 159.0 },
 ];
 
 export default function UserDashboard() {
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Tümü");
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("none");
   const [showSort, setShowSort] = useState(false);
-  const productsPerPage = 16;
 
+  const productsPerPage = 8;
   const visibleCount = 6;
   const visibleCategories = categories.slice(0, visibleCount);
   const overflowCategories = categories.slice(visibleCount);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Kategoriler alınamadı:", err);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -64,9 +58,10 @@ export default function UserDashboard() {
   });
 
   const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
-  const start = (currentPage - 1) * productsPerPage;
-  const end = start + productsPerPage;
-  const paginatedProducts = sortedProducts.slice(start, end);
+  const paginatedProducts = sortedProducts.slice(
+    (currentPage - 1) * productsPerPage,
+    currentPage * productsPerPage
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -84,20 +79,21 @@ export default function UserDashboard() {
               <div className="absolute top-full left-0 mt-2 bg-white shadow-lg rounded-xl border w-48 z-10">
                 {overflowCategories.map((cat) => (
                   <button
-                    key={cat.name}
+                    key={cat.id}
                     onClick={() => {
                       setSelectedCategory(cat.name);
                       setShowAll(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                   >
-                    <span>{cat.icon}</span> {cat.name}
+                    {cat.name}
                   </button>
                 ))}
               </div>
             )}
           </div>
         )}
+
         <button
           onClick={() => setSelectedCategory("Tümü")}
           className={`px-4 py-2 rounded-full text-sm border transition ${
@@ -106,28 +102,28 @@ export default function UserDashboard() {
               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
           }`}
         >
-          🔄 Tümü
+          Tümü
         </button>
 
         {visibleCategories.map((cat) => (
           <button
-            key={cat.name}
+            key={cat.id}
             onClick={() => setSelectedCategory(cat.name)}
-            className={`px-4 py-2 rounded-full text-sm border transition flex items-center gap-1 ${
+            className={`px-4 py-2 rounded-full text-sm border transition ${
               selectedCategory === cat.name
                 ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
             }`}
           >
-            <span>{cat.icon}</span> {cat.name}
+            {cat.name}
           </button>
         ))}
       </div>
 
-      {/* Özel Dropdown ile Sıralama Menüsü */}
+      {/* Sıralama */}
       <div className="relative flex justify-end mb-6">
         <button
-          onClick={() => setShowSort((prev) => !prev)}
+          onClick={() => setShowSort(!showSort)}
           className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-100"
         >
           {sortBy === "price-asc"
@@ -171,7 +167,7 @@ export default function UserDashboard() {
         )}
       </div>
 
-      {/* Ürün Listesi */}
+      {/* Ürünler */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {paginatedProducts.map((product, index) => (
           <ProductCard
@@ -185,7 +181,7 @@ export default function UserDashboard() {
 
       {/* Sayfalama */}
       {totalPages > 1 && (
-        <div className="flex justify-center mt-10 gap-2 border-t-1 border-t-gray-300 pt-3">
+        <div className="flex justify-center mt-10 gap-2 border-t border-gray-300 pt-3">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
