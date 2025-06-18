@@ -1,4 +1,4 @@
-import { Link,useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   ShoppingCart,
@@ -6,13 +6,15 @@ import {
   Search,
   User,
   Settings,
-  LogOut
+  LogOut,
 } from "lucide-react";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useSearchStore } from "../stores/useSearchStore";
 
 export default function Navbar() {
   const { isAuthenticated, role, logout } = useAuthStore();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const { query, setQuery } = useSearchStore();
 
   const email = localStorage.getItem("token")
     ? JSON.parse(atob(localStorage.getItem("token")!.split(".")[1])).sub
@@ -21,7 +23,6 @@ export default function Navbar() {
   const username = email.split("@")[0] || "Kullanıcı";
   const initial = username.charAt(0).toUpperCase();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
 
@@ -33,24 +34,21 @@ export default function Navbar() {
   return (
     <nav className="bg-white border-b border-gray-200 relative z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Sol: Logo */}
         <Link to="/" className="text-2xl font-bold text-gray-800">
           Marketly<span className="text-blue-600">.</span>
         </Link>
 
-        {/* Orta: Search bar */}
         <div className="w-full max-w-md mx-6 relative">
           <input
             type="text"
             placeholder="Ürün ara..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             className="w-full border border-gray-300 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         </div>
 
-        {/* Sağ: Menü */}
         <div className="flex items-center gap-6 text-sm">
           {isAuthenticated ? (
             <div className="flex items-center justify-center gap-2 relative">
@@ -101,7 +99,10 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <Link to="/auth" className="flex items-center gap-1 text-white hover:bg-blue-700 bg-blue-600 transition border-1 border-gray-300 p-2 rounded-sm">
+            <Link
+              to="/auth"
+              className="flex items-center gap-1 text-white hover:bg-blue-700 bg-blue-600 transition border-1 border-gray-300 p-2 rounded-sm"
+            >
               Giriş Yap
             </Link>
           )}

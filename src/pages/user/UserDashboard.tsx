@@ -4,6 +4,7 @@ import ProductCard from "../../components/cards/ProductCard";
 import { fetchCategories } from "../../api/product/categoryApi";
 import { fetchProducts } from "../../api/product/productApi";
 import type { CategoryResponse, ProductResponse } from "../../types/dto/product";
+import { useSearchStore } from "../../stores/useSearchStore";
 
 export default function UserDashboard() {
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -13,6 +14,8 @@ export default function UserDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("none");
   const [showSort, setShowSort] = useState(false);
+
+  const { query } = useSearchStore();
 
   const productsPerPage = 8;
   const visibleCount = 6;
@@ -38,14 +41,20 @@ export default function UserDashboard() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory]);
+  }, [selectedCategory, query]);
 
   const filteredProducts =
     selectedCategory === "Tümü"
       ? products
       : products.filter((p) => p.category.name === selectedCategory);
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
+  const searchedProducts = query
+    ? filteredProducts.filter((p) =>
+        p.name.toLowerCase().includes(query.toLowerCase())
+      )
+    : filteredProducts;
+
+  const sortedProducts = [...searchedProducts].sort((a, b) => {
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
     return 0;
@@ -170,9 +179,8 @@ export default function UserDashboard() {
             title={product.name}
             category={product.category.name}
             price={product.price}
-            isAdmin={true} // sadece admin'de aktif olacak
+            isAdmin={true}
           />
-
         ))}
       </div>
 
