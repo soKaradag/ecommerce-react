@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
-import { fetchProfilePhoto, uploadProfilePhoto } from "../api/customer/profilephoto";
+import { fetchProfilePhoto, uploadProfilePhoto } from "../api/user/profilephoto";
 
 export default function ProfilePhotoSection() {
   const [photoUrl, setPhotoUrl] = useState("");

@@ -1,38 +1,17 @@
 import { useEffect, useRef, useState, type JSX, type ChangeEvent } from "react";
 import { Heart, History, Ticket, Pencil, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import { updateCustomerInfo } from "../api/customer/updateCustomerInfo";
-import { fetchCustomerInfo } from "../api/customer/fetchCustomerInfo";
-import { fetchProfilePhoto, uploadProfilePhoto } from "../api/customer/profilephoto";
+import { updateCustomerInfo } from "../api/user/updateCustomerInfo";
+import { fetchCustomerInfo } from "../api/user/fetchCustomerInfo";
+import { fetchAdminInfo } from "../api/user/fetchAdminInfo";
+import { fetchProfilePhoto, uploadProfilePhoto } from "../api/user/profilephoto";
+import type { CustomerInfoResponse, UpdateCustomerInfoRequest } from "../types/dto/user";
+import type { AdminInfoResponse } from "../types/dto/user";
+import { useAuthStore } from "../stores/useAuthStore";
 
 type Gender = {
   id: string;
   name: string;
-};
-
-type CustomerInfoResponse = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  age: number;
-  phoneNumber: string;
-  gender: string | { id: string; name: string };
-  country: string;
-  city: string;
-  zipCode: string;
-  openAddress: string;
-};
-
-type UpdateCustomerInfoRequest = {
-  firstName: string;
-  lastName: string;
-  age: number;
-  phoneNumber: string;
-  genderId: string;
-  country: string;
-  city: string;
-  zipCode: string;
-  openAddress: string;
 };
 
 export default function ProfilePage() {
@@ -46,6 +25,9 @@ export default function ProfilePage() {
   const [genderId, setGenderId] = useState("");
   const [genders, setGenders] = useState<Gender[]>([]);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfoResponse | null>(null);
+  const [adminInfo, setAdminInfo] = useState<AdminInfoResponse | null>(null);
+  const { role } = useAuthStore();
+
   const [formData, setFormData] = useState<UpdateCustomerInfoRequest>({
     firstName: "",
     lastName: "",
@@ -69,28 +51,30 @@ export default function ProfilePage() {
     const id = decoded.userId || decoded.sub;
     setUserId(id);
 
-    fetchCustomerInfo(id).then((data) => {
-      setCustomerInfo(data);
-      const genderObj = typeof data.gender === "string" ? null : (data.gender as Gender);
-
-      setFormData({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        age: data.age,
-        phoneNumber: data.phoneNumber,
-        genderId: genderObj ? genderObj.id : "",
-        country: data.country,
-        city: data.city,
-        zipCode: data.zipCode,
-        openAddress: data.openAddress,
+    if (role === "ADMIN") {
+      fetchAdminInfo(id).then((data) => {
+        setAdminInfo(data);
       });
+    } else {
+      fetchCustomerInfo(id).then((data) => {
+        setCustomerInfo(data);
+        const genderObj = typeof data.gender === "string" ? null : (data.gender as Gender);
 
-      if (typeof data.gender !== "string") {
-        const genderObj = data.gender as Gender;
-        setGenderId(genderObj.id);
-      }
+        setFormData({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          age: data.age,
+          phoneNumber: data.phoneNumber,
+          genderId: genderObj ? genderObj.id : "",
+          country: data.country,
+          city: data.city,
+          zipCode: data.zipCode,
+          openAddress: data.openAddress,
+        });
 
-    });
+        if (genderObj) setGenderId(genderObj.id);
+      });
+    }
 
     fetch("http://localhost:8080/api/genders")
       .then((res) => res.json())
@@ -106,6 +90,8 @@ export default function ProfilePage() {
     if (!token) return;
     try {
       await updateCustomerInfo(userId, formData);
+      const updated = await fetchCustomerInfo(userId);
+      setCustomerInfo(updated);
       alert("Profil güncellendi.");
       setIsModalOpen(false);
     } catch {
@@ -126,45 +112,35 @@ export default function ProfilePage() {
     try {
       await uploadProfilePhoto(formData, token);
       const url = await fetchProfilePhoto(userId);
-      setPhotoUrl(url);
+      setPhotoUrl(`http://localhost:8080/${url}`);
     } catch {
       alert("Yükleme hatası.");
     }
   };
 
-  if (!customerInfo) return <div className="p-8">Yükleniyor...</div>;
+  if (role === "ADMIN" && !adminInfo) return <div className="p-8">Yükleniyor...</div>;
+  if (role === "CUSTOMER" && !customerInfo) return <div className="p-8">Yükleniyor...</div>;
 
   return (
-    <div className=" mx-12 px-4 py-10 relative">
+    <div className="mx-12 px-4 py-10 relative">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Profil</h1>
 
       <div className="bg-white shadow rounded-2xl p-6 border border-gray-200 mb-8">
         <div className="flex items-center gap-6 mb-6">
-        <div
-          onClick={handlePhotoClick}
-          className="w-20 h-20 rounded-full overflow-hidden cursor-pointer border border-gray-300 shadow-sm"
-          title="Profil fotoğrafını değiştir"
-        >
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt="Profil"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">
-              {username.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-          />
-        </div>
-
+          <div
+            onClick={handlePhotoClick}
+            className="w-20 h-20 rounded-full overflow-hidden cursor-pointer border border-gray-300 shadow-sm"
+            title="Profil fotoğrafını değiştir"
+          >
+            {photoUrl ? (
+              <img src={photoUrl} alt="Profil" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">
+                {username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+          </div>
 
           <div>
             <h2 className="text-xl font-semibold text-gray-800">{username}</h2>
@@ -173,23 +149,45 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Display label="Ad" value={customerInfo.firstName} />
-          <Display label="Soyad" value={customerInfo.lastName} />
-          <Display label="Telefon" value={customerInfo.phoneNumber} />
-          <Display label="Yaş" value={String(customerInfo.age)} />
-          <Display label="Adres" value={customerInfo.openAddress} />
-          <Display label="Şehir" value={customerInfo.city} />
-          <Display label="Ülke" value={customerInfo.country} />
-          <Display label="Posta Kodu" value={customerInfo.zipCode} />
-          <Display label="Cinsiyet" value={typeof customerInfo.gender === "string" ? customerInfo.gender : customerInfo.gender.name} />
+          {role === "CUSTOMER" && customerInfo && (
+            <>
+              <Display label="Ad" value={customerInfo.firstName} />
+              <Display label="Soyad" value={customerInfo.lastName} />
+              <Display label="Telefon" value={customerInfo.phoneNumber} />
+              <Display label="Yaş" value={String(customerInfo.age)} />
+              <Display label="Adres" value={customerInfo.openAddress} />
+              <Display label="Şehir" value={customerInfo.city} />
+              <Display label="Ülke" value={customerInfo.country} />
+              <Display label="Posta Kodu" value={customerInfo.zipCode} />
+              <Display
+                label="Cinsiyet"
+                value={
+                  typeof customerInfo.gender === "string"
+                    ? customerInfo.gender
+                    : (customerInfo.gender as Gender)?.name || ""
+                }
+              />
+            </>
+          )}
+          {role === "ADMIN" && adminInfo && (
+            <>
+              <Display label="Ad Soyad" value={adminInfo.fullName} />
+              <Display label="Telefon" value={adminInfo.phoneNumber} />
+              <Display label="E-posta" value={adminInfo.email} />
+              <Display label="Departman Adı" value={adminInfo.departmentName} />
+              <Display label="Departman Kodu" value={adminInfo.departmentCode} />
+            </>
+          )}
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700"
-        >
-          <Pencil size={16} /> Profili Düzenle
-        </button>
+        {role === "CUSTOMER" && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700"
+          >
+            <Pencil size={16} /> Profili Düzenle
+          </button>
+        )}
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -198,7 +196,7 @@ export default function ProfilePage() {
         <ProfileLink to="/support" icon={<Ticket size={18} />} title="Destek Taleplerim" desc="Destek taleplerinizi ve yanıtları görüntüleyin." />
       </div>
 
-      {isModalOpen && (
+      {role === "CUSTOMER" && isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-xl relative">
             <button onClick={() => setIsModalOpen(false)} className="absolute top-3 right-3 text-gray-500 hover:text-gray-700">
@@ -240,7 +238,9 @@ export default function ProfilePage() {
                 >
                   <option value="" disabled>Seçiniz</option>
                   {genders.map((g) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
                   ))}
                 </select>
               </div>
