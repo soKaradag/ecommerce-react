@@ -1,5 +1,5 @@
 // src/api/product/categoryApi.ts
-import type { CategoryRequest } from "../../types/dto/product";
+import type { CategoryRequest, CategoryResponse } from "../../types/dto/product";
 import axios from "../axios";
 
 const BASE_URL = "http://localhost:8080/api/categories";

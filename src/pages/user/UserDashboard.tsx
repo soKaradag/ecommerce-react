@@ -1,23 +1,13 @@
-// pages/user/UserDashboard.tsx
 import { useState, useEffect } from "react";
 import { MoreHorizontal, ChevronDown } from "lucide-react";
 import ProductCard from "../../components/cards/ProductCard";
 import { fetchCategories } from "../../api/product/categoryApi";
-import type { CategoryResponse } from "../../types/dto/product";
-
-const products = [
-  { title: "Bluetooth Kulaklık", category: "Elektronik", price: 299.99 },
-  { title: "Yazlık Elbise", category: "Giyim", price: 179.99 },
-  { title: "Yatak Örtüsü", category: "Ev & Yaşam", price: 249.9 },
-  { title: "Roman Kitabı", category: "Kitap", price: 89.9 },
-  { title: "Koşu Ayakkabısı", category: "Spor", price: 399.0 },
-  { title: "Lego Seti", category: "Oyuncak", price: 189.5 },
-  { title: "Fondöten", category: "Kozmetik", price: 129.75 },
-  { title: "Organik Yulaf Ezmesi", category: "Market", price: 54.99 },
-];
+import { fetchProducts } from "../../api/product/productApi";
+import type { CategoryResponse, ProductResponse } from "../../types/dto/product";
 
 export default function UserDashboard() {
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [products, setProducts] = useState<ProductResponse[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Tümü");
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,16 +20,20 @@ export default function UserDashboard() {
   const overflowCategories = categories.slice(visibleCount);
 
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadData = async () => {
       try {
-        const data = await fetchCategories();
-        setCategories(data);
+        const [categoryData, productData] = await Promise.all([
+          fetchCategories(),
+          fetchProducts(),
+        ]);
+        setCategories(categoryData);
+        setProducts(productData);
       } catch (err) {
-        console.error("Kategoriler alınamadı:", err);
+        console.error("Veriler yüklenemedi:", err);
       }
     };
 
-    loadCategories();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -49,7 +43,7 @@ export default function UserDashboard() {
   const filteredProducts =
     selectedCategory === "Tümü"
       ? products
-      : products.filter((p) => p.category === selectedCategory);
+      : products.filter((p) => p.category.name === selectedCategory);
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortBy === "price-asc") return a.price - b.price;
@@ -169,13 +163,16 @@ export default function UserDashboard() {
 
       {/* Ürünler */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {paginatedProducts.map((product, index) => (
+        {paginatedProducts.map((product) => (
           <ProductCard
-            key={index}
-            title={product.title}
-            category={product.category}
+            key={product.id}
+            id={product.id}
+            title={product.name}
+            category={product.category.name}
             price={product.price}
+            isAdmin={true} // sadece admin'de aktif olacak
           />
+
         ))}
       </div>
 
