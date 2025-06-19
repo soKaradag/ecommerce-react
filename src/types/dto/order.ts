@@ -22,18 +22,17 @@ export interface OrderStatusRequest {
   name: string;
 }
 
-export interface OrderAddressRequest {
-  city: CityRequest;
-  country: CountryRequest;
-  zipCode: string;
-  address: string;
-}
-
 export interface OrderItemRequest {
   productId: string;
   quantity: number;
 }
 
+export interface OrderAddressRequest {
+  cityId: string;
+  countryId: string;
+  zipCode: string;
+  address: string;
+}
 export interface OrderRequest {
   userId: string;
   items: OrderItemRequest[];
@@ -74,13 +73,32 @@ export interface OrderStatusResponse {
   name: string;
 }
 
+export interface OrderItemResponse {
+  productId: string;
+  quantity: number;
+}
+
 export interface OrderResponse {
   id: string;
   userId: string;
-  items: OrderItemResponse[];
-  orderDate: string; 
   totalAmount: number;
   status: string;
-  orderStatus: OrderStatusResponse;
-  orderAddress: OrderAddressResponse;
+  orderStatus: {
+    name: string;
+  };
+  orderAddress: {
+    city: {
+      id: string;
+      name: string;
+    };
+    country: {
+      id: string;
+      name: string;
+    };
+    zipCode: string;
+    address: string;
+  };
+  items: OrderItemResponse[];
+  createdAt: string;
 }
+

@@ -1,25 +1,29 @@
 import { Heart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { fetchProductImagesByProductId, uploadProductImage } from "../../api/product/productApi";
+import {
+  fetchProductImagesByProductId,
+  uploadProductImage,
+} from "../../api/product/productApi";
+import { addToCart } from "../../api/cart/addToCart";
 
 interface ProductCardProps {
   id: string;
   title: string;
   category: string;
   price: number;
-  isAdmin?: boolean; // admin kontrolü
 }
 
-export default function ProductCard({ id, title, category, price, isAdmin = false }: ProductCardProps) {
+export default function ProductCard({ id, title, category, price }: ProductCardProps) {
   const [imageUrl, setImageUrl] = useState<string>("/default_product.png");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false); // <-- toggle için
 
   useEffect(() => {
     const loadImage = async () => {
       try {
         const images = await fetchProductImagesByProductId(id);
         if (images.length > 0) {
-          console.log("Yüklenen resim URL'si:", images[0].imageUrl); // <== BURAYA BAK
           setImageUrl(images[0].imageUrl);
         }
       } catch (error) {
@@ -27,12 +31,22 @@ export default function ProductCard({ id, title, category, price, isAdmin = fals
       }
     };
 
+    const checkAdminRole = () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.role === "ADMIN") {
+          setIsAdminUser(true);
+        }
+      }
+    };
+
     loadImage();
+    checkAdminRole();
   }, [id]);
 
-
   const handleImageClick = () => {
-    if (isAdmin && fileInputRef.current) {
+    if (isAdminUser && fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
@@ -49,26 +63,63 @@ export default function ProductCard({ id, title, category, price, isAdmin = fals
     }
   };
 
+  const handleAddToCart = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Giriş yapmalısınız.");
+        return;
+      }
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const userId = payload.userId;
+      const role = payload.role;
+
+      if (role !== "CUSTOMER") {
+        alert("Sadece müşteri rolündeki kullanıcılar sepete ürün ekleyebilir.");
+        return;
+      }
+
+      await addToCart(userId, id);
+      alert("Ürün sepete eklendi.");
+    } catch (error) {
+      console.error("Sepete eklenirken hata oluştu:", error);
+      alert("Sepete eklenemedi.");
+    }
+  };
+
+  const toggleFavorite = () => {
+    setIsFavorite(prev => !prev);
+  };
+
   return (
     <div className="relative bg-white p-4 rounded-xl hover:shadow-md transition border border-gray-200 hover:border-blue-200">
       {/* Favori İkonu */}
-      <button className="absolute top-3 right-3 p-1 rounded-xl bg-white text-gray-400 hover:text-red-500 border border-gray-300">
-        <Heart className="w-5 h-5" />
+      <button
+        onClick={toggleFavorite}
+        className={`absolute top-3 right-3 p-1 rounded-xl bg-white border ${
+          isFavorite ? "text-red-500 border-red-500" : "text-gray-400 border-gray-300"
+        }`}
+      >
+        <Heart className="w-5 h-5" fill={isFavorite ? "red" : "none"} />
       </button>
 
       {/* Ürün Görseli */}
       <div
         className={`h-40 bg-gray-200 rounded mb-4 overflow-hidden cursor-pointer ${
-          isAdmin ? "hover:opacity-80" : ""
+          isAdminUser ? "hover:opacity-80" : ""
         }`}
-        onClick={handleImageClick}
-        title={isAdmin ? "Yeni görsel yüklemek için tıkla" : ""}
+        onClick={isAdminUser ? handleImageClick : undefined}
+        title={isAdminUser ? "Yeni görsel yüklemek için tıkla" : ""}
       >
-        <img src={`http://localhost:8080${imageUrl}`} alt={title} className="w-full h-full object-cover rounded" />
+        <img
+          src={`http://localhost:8080${imageUrl}`}
+          alt={title}
+          className="w-full h-full object-cover rounded"
+        />
       </div>
 
-      {/* Görsel yükleme inputu (gizli) */}
-      {isAdmin && (
+      {isAdminUser && (
         <input
           ref={fileInputRef}
           type="file"
@@ -82,7 +133,10 @@ export default function ProductCard({ id, title, category, price, isAdmin = fals
       <p className="text-sm text-gray-600 mb-2">Kategori: {category}</p>
       <p className="text-blue-500 font-bold mb-3">₺{price.toFixed(2)}</p>
 
-      <button className="w-full bg-blue-500 text-white py-2 rounded-xl text-sm hover:bg-blue-600 transition">
+      <button
+        onClick={handleAddToCart}
+        className="w-full bg-blue-500 text-white py-2 rounded-xl text-sm hover:bg-blue-600 transition"
+      >
         Sepete Ekle
       </button>
     </div>

@@ -53,3 +53,8 @@ export const uploadProductImage = async (
 export const deleteProductImage = async (id: string): Promise<void> => {
   await axios.delete(`/product-images/${id}`);
 };
+
+export const fetchProductById = async (id: string): Promise<ProductResponse> => {
+  const res = await axios.get(`/products/${id}`);
+  return res.data;
+};
